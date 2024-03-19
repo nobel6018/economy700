@@ -2,8 +2,10 @@ import os
 import string
 from dataclasses import dataclass
 from datetime import datetime
+from email.header import Header
 from typing import List
 
+import boto3
 import pytz
 import requests
 from slack_sdk import WebClient
@@ -11,13 +13,93 @@ from slack_sdk.errors import SlackApiError
 
 
 def handler(event, context):
-    send_slack_message()
-
-
-def send_slack_message():
-    client = WebClient(token=os.environ['SLACK_BOT_TOKEN'])
-
     article = get_today_article()
+
+    subscriber_emails = get_subscriber_emails()
+    send_email(subscriber_emails, article)
+
+    send_slack_message(article)
+
+
+@dataclass
+class Article:
+    id: int
+    title: string
+    content: string
+    relatedKeywords: List[str]
+
+
+def get_subscriber_emails() -> List[str]:
+    aws_access_key_id = os.environ.get('AWS_ACCESS_KEY_ID')
+    aws_secret_access_key = os.environ.get('AWS_SECRET_ACCESS_KEY')
+    region_name = os.environ.get('AWS_REGION')
+
+    session = boto3.session.Session(
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key,
+        region_name=region_name
+    )
+
+    # 이 세션을 사용하여 서비스 클라이언트를 생성합니다.
+    dynamodb = session.resource('dynamodb')
+
+    # 사용할 DynamoDB 테이블 지정
+    table = dynamodb.Table('email')
+    response = table.scan()
+    emails = response['Items']
+    return list(map(lambda x: x['email'], emails))
+
+
+def send_email(to_addrs: List[str], article: Article):
+    import smtplib
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+
+    gmail_user = os.environ.get('GMAIL_USER')
+    gmail_password = os.environ.get('GMAIL_PASSWORD')
+
+    from_addr = gmail_user
+
+    # MIME 메시지 생성
+    msg = MIMEMultipart('alternative')
+    msg['From'] = from_addr
+    msg['To'] = Header("undisclosed-recipients:;")
+    msg['Subject'] = f'오늘의 경제 단어: {article.title}'
+
+    # HTML 이메일 본문 내용
+    html = f"""\
+    <html>
+      <head></head>
+      <body>
+        <h3>❤️<a href="https://economy700.leedo.me/{article.id}.json">{article.id}. {article.title}</a>🍀</h3>
+        <p style="padding: 12px; border-left: 4px solid #d0d0d0;">
+          {article.content}
+        </p>
+        <p>연관검색어: {", ".join(article.relatedKeywords) if len(article.relatedKeywords) > 0 else "N/A"}</p>
+      </body>
+    </html>
+    """
+
+    # MIMEText 객체 생성 및 메시지에 추가
+    part = MIMEText(html, 'html')
+    msg.attach(part)
+
+    # Gmail SMTP 서버 설정 및 이메일 전송
+    try:
+        server = smtplib.SMTP('smtp.gmail.com', 587)  # Gmail SMTP 서버 주소와 TLS 포트
+        server.starttls()  # TLS 보안 시작
+        server.login(gmail_user, gmail_password)
+
+        server.sendmail(from_addr, to_addrs + [from_addr], msg.as_string())
+        print(f"Email sent successfully to {to_addrs + [from_addr]}")
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+    finally:
+        server.quit()
+
+
+def send_slack_message(article: Article):
+    client = WebClient(token=os.environ['SLACK_BOT_TOKEN'])
 
     try:
         response = client.chat_postMessage(
@@ -38,14 +120,6 @@ def get_today_number() -> int:
     days_diff = (current_date - start_date).days
 
     return (days_diff % 700) + 1
-
-
-@dataclass
-class Article:
-    id: int
-    title: string
-    content: string
-    relatedKeywords: List[str]
 
 
 def get_today_article() -> Article:
