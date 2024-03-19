@@ -30,20 +30,8 @@ class Article:
 
 
 def get_subscriber_emails() -> List[str]:
-    aws_access_key_id = os.environ.get('AWS_ACCESS_KEY_ID')
-    aws_secret_access_key = os.environ.get('AWS_SECRET_ACCESS_KEY')
-    region_name = os.environ.get('AWS_REGION')
+    dynamodb = boto3.resource('dynamodb')
 
-    session = boto3.session.Session(
-        aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key,
-        region_name=region_name
-    )
-
-    # 이 세션을 사용하여 서비스 클라이언트를 생성합니다.
-    dynamodb = session.resource('dynamodb')
-
-    # 사용할 DynamoDB 테이블 지정
     table = dynamodb.Table('email')
     response = table.scan()
     emails = response['Items']

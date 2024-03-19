@@ -4,10 +4,6 @@ FROM public.ecr.aws/lambda/python:3.12
 # 환경 변수 설정
 ENV SLACK_BOT_TOKEN=yor_slack_bot_token
 
-ENV AWS_ACCESS_KEY_ID=your_aws_access_key_id
-ENV AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
-ENV AWS_REGION=your_aws_region
-
 ENV GMAIL_USER=your_gmail_user
 # gmail 앱 비밀번호
 # refer: https://kincoding.com/entry/Google-Gmail-SMTP-%EC%82%AC%EC%9A%A9%EC%9D%84-%EC%9C%84%ED%95%9C-%EC%84%B8%ED%8C%85
