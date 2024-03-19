@@ -1,0 +1,18 @@
+# Python 런타임 베이스 이미지 선택
+FROM public.ecr.aws/lambda/python:3.8
+
+# 환경 변수 설정
+ENV SLACK_BOT_TOKEN=yor_slack_bot_token
+
+# 작업 디렉터리 설정
+WORKDIR /var/task
+
+# 의존성 파일 복사 및 설치
+COPY requirements.txt  .
+RUN pip install -r requirements.txt
+
+# Lambda 함수 코드 복사
+COPY app.py .
+
+# Lambda 함수 핸들러 설정
+CMD ["app.handler"]
