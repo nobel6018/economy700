@@ -267,3 +267,4 @@ pyrightconfig.json
 # custom
 bot/Dockerfile
 bot/deploy.sh
+bot/articles/s3_upload.sh
