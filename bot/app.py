@@ -89,10 +89,11 @@ def send_email(to_addrs: List[str], article: Article):
 def send_slack_message(article: Article):
     client = WebClient(token=os.environ['SLACK_BOT_TOKEN'])
 
+    text = f"<https://economy700.leedo.me/{article.id}.json|*❤️{article.id}. {article.title}🍀*>\n\n{article.content}\n\n연관검색어: {", ".join(article.relatedKeywords) if len(article.relatedKeywords) > 0 else "N/A"}"
     try:
         response = client.chat_postMessage(
             channel="#general",
-            text=f"<https://economy700.leedo.me/{article.id}.json|*❤️{article.id}. {article.title}🍀*>\n\n{article.content}\n\n연관검색어: {', '.join(article.relatedKeywords)}"
+            text=text
         )
         print("Message sent: ", response["message"]["text"])
     except SlackApiError as e:
