@@ -1,7 +1,7 @@
 import os
 import string
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from email.header import Header
 from typing import List
 
@@ -100,15 +100,21 @@ def send_slack_message(article: Article):
         print(f"Error sending message: {e}")
 
 
-# 오늘의 항목 번호 계산, 700일 주기로 반복
+# 오늘의 항목 번호 계산, 주말 제외, 700일 주기로 반복
 def get_today_number() -> int:
     seoul_timezone = pytz.timezone('Asia/Seoul')
-    start_date = datetime(2024, 3, 10, tzinfo=seoul_timezone)
+    start_date = datetime(2024, 2, 29, tzinfo=seoul_timezone)
     current_date = datetime.now(seoul_timezone)
 
-    days_diff = (current_date - start_date).days
+    # 주말을 제외한 일수 계산
+    weekday_count = 0
+    current_day = start_date
+    while current_day < current_date:
+        if current_day.weekday() < 5:  # 월요일(0)부터 금요일(4)까지
+            weekday_count += 1
+        current_day += timedelta(days=1)
 
-    return (days_diff % 700) + 1
+    return weekday_count % 700
 
 
 def get_today_article() -> Article:
